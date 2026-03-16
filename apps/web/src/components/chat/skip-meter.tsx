@@ -29,9 +29,12 @@ export function SkipMeter({ skipCount, maxSkips = 10, cooldownSeconds = null }: 
       />
 
       {cooldownSeconds !== null && cooldownSeconds > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-destructive mt-1 bg-destructive/10 p-2 rounded-md">
-          <AlertCircle className="w-4 h-4" />
-          <span>Out of skips! Wait {Math.ceil(cooldownSeconds / 60)} minutes.</span>
+        <div className="flex flex-col gap-1 text-xs text-destructive mt-1 bg-destructive/10 p-2 rounded-md">
+          <div className="flex items-center gap-1.5 ">
+            <AlertCircle className="w-4 h-4" />
+            <span>Limit hit! Wait {Math.ceil(cooldownSeconds / 60)}m or refill.</span>
+          </div>
+          <p className="text-[10px] opacity-70 ml-5.5">Click 'Skip' to watch an ad and refill.</p>
         </div>
       )}
     </div>

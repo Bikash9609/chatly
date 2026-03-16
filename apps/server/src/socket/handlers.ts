@@ -163,7 +163,12 @@ async function createRoom(s1: Socket, s2Id: string, uuid1: string, uuid2: string
   const active1 = activeSockets.get(s1.id); if (active1) active1.roomId = roomId;
   const active2 = activeSockets.get(s2.id); if (active2) active2.roomId = roomId;
 
-  const icebreaker = getRandomIcebreaker();
+  let icebreaker = getRandomIcebreaker();
+
+  // Phase 2: Sponsored Room Slot override
+  if (topic === 'jio-night') {
+    icebreaker = "Welcome to the Jio Night Lounge! 🌙 📺 Enjoy free streaming tonight. Tip: Ask your partner their favorite show.";
+  }
 
   await ChatLog.create({
     roomId,
