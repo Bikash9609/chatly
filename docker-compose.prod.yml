@@ -1,0 +1,31 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SOCKET_URL=${NEXT_PUBLIC_SOCKET_URL}
+    networks:
+      - chatly_prod
+    restart: always
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile.prod
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - CLIENT_URL=${CLIENT_URL}
+      - MONGODB_URI=${MONGODB_URI}
+      - REDIS_URL=${REDIS_URL}
+    networks:
+      - chatly_prod
+    restart: always
+
+networks:
+  chatly_prod:
+    driver: bridge

@@ -1,0 +1,79 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:4000
+      - CHOKIDAR_USEPOLLING=true # helps hot reload on some mac/windows variants via docker
+    networks:
+      - chatly_dev
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web
+          target: /app/apps/web
+          ignore:
+            - node_modules
+            - .next
+        - action: rebuild
+          path: ./package.json
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/server/node_modules
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - CLIENT_URL=http://localhost:3000
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/chatly}
+      # - REDIS_URL=redis://redis:6379 # Uncomment if turning on redis locally
+    networks:
+      - chatly_dev
+    depends_on:
+      - mongo
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/server
+          target: /app/apps/server
+          ignore:
+            - node_modules
+        - action: rebuild
+          path: ./package.json
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - chatly_dev
+
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - chatly_dev
+
+networks:
+  chatly_dev:
+    driver: bridge
+
+volumes:
+  mongo_data:

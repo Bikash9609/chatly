@@ -1,0 +1,10 @@
+FROM node:20-alpine
+
+WORKDIR /app
+COPY package*.json yarn.lock .yarnrc.yml ./
+COPY .yarn/ ./.yarn/
+COPY apps/server/package*.json ./apps/server/
+RUN corepack enable && yarn install
+
+# Dev server runs from root workspaces
+CMD ["yarn", "workspace", "@chatly/server", "dev"]

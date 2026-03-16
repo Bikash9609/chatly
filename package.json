@@ -1,0 +1,16 @@
+{
+  "name": "chatly",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"yarn workspace @chatly/web dev\" \"yarn workspace @chatly/server dev\"",
+    "build": "yarn workspaces run build",
+    "lint": "yarn workspaces run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "packageManager": "yarn@4.13.0"
+}

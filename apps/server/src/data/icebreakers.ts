@@ -1,0 +1,36 @@
+const prompts = [
+  'If you could live anywhere in the world for a year, where would you go?',
+  'What\'s one skill you\'ve always wanted to learn but haven\'t yet?',
+  'What\'s the last thing that genuinely made you laugh out loud?',
+  'If you could have dinner with any historical figure, who would it be?',
+  'What\'s the best piece of advice you\'ve ever received?',
+  'What\'s a movie or show you\'ve rewatched more than three times?',
+  'If you could instantly master any instrument, which would you pick?',
+  'What\'s something you believed as a child that turned out to be completely wrong?',
+  'What\'s your most unpopular opinion?',
+  'If your life had a theme song, what would it be?',
+  'What\'s the weirdest food combination you actually enjoy?',
+  'What\'s one thing you wish more people knew about you?',
+  'If you won ₹1 crore tomorrow, what\'s the first thing you\'d do?',
+  'What\'s a trend you secretly love but never admit to?',
+  'What hobby do you wish you had more time for?',
+  'What\'s the most interesting place you\'ve ever visited?',
+  'If you could switch careers for a week, what would you try?',
+  'What\'s something you\'re genuinely proud of?',
+  'What\'s the first website you remember visiting as a kid?',
+  'What does your ideal Sunday look like?',
+  'If you could live in any fictional universe, which would you choose?',
+  'What\'s one thing you always thought you\'d do by this age but haven\'t?',
+  'What\'s the last book you read that actually changed how you think?',
+  'If you had to eat one cuisine for the rest of your life, which would you choose?',
+  'What\'s something that instantly improves your mood?',
+  'What\'s a small thing that people overlook but actually matters a lot?',
+  'If you could witness any moment in history, what would it be?',
+  'What app do you use most, and are you embarrassed by that?',
+  'What\'s the most spontaneous thing you\'ve ever done?',
+  'What do you think makes a conversation genuinely good?',
+];
+
+export function getRandomIcebreaker(): string {
+  return prompts[Math.floor(Math.random() * prompts.length)];
+}
