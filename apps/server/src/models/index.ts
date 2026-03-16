@@ -66,3 +66,48 @@ const FeedbackSchema = new Schema<IFeedback>({
 });
 
 export const Feedback = mongoose.model<IFeedback>('Feedback', FeedbackSchema);
+
+// ---------------------------------------------------------------------------
+// AffiliateLink — link configuration per topic
+// ---------------------------------------------------------------------------
+export interface IAffiliateLink extends Document {
+  topic: string;
+  url: string;
+  title: string;
+  imageUrl?: string;
+  clicks: number;
+  active: boolean;
+}
+
+const AffiliateLinkSchema = new Schema<IAffiliateLink>({
+  topic:    { type: String, required: true, index: true },
+  url:      { type: String, required: true },
+  title:    { type: String, required: true },
+  imageUrl: { type: String },
+  clicks:   { type: Number, default: 0 },
+  active:   { type: Boolean, default: true },
+});
+
+export const AffiliateLink = mongoose.model<IAffiliateLink>('AffiliateLink', AffiliateLinkSchema);
+
+// ---------------------------------------------------------------------------
+// ClickLog — tracks every affiliate click for UTM analytics
+// ---------------------------------------------------------------------------
+export interface IClickLog extends Document {
+  uuid: string;
+  linkId: mongoose.Types.ObjectId;
+  utmSource: string;
+  topic: string;
+  createdAt: Date;
+}
+
+const ClickLogSchema = new Schema<IClickLog>({
+  uuid:      { type: String, required: true },
+  linkId:    { type: Schema.Types.ObjectId, ref: 'AffiliateLink', required: true },
+  utmSource: { type: String, default: 'direct' },
+  topic:     { type: String },
+  createdAt: { type: Date, default: () => new Date() },
+});
+
+export const ClickLog = mongoose.model<IClickLog>('ClickLog', ClickLogSchema);
+

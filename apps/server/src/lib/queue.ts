@@ -72,7 +72,7 @@ async function buildRedisQueue(url: string): Promise<QueueAdapter> {
     },
     async remove(topic, socketId) {
       const raw = await client.lrange(key(topic), 0, -1);
-      const filtered = raw.filter((r) => {
+      const filtered = (raw as string[]).filter((r: string) => {
         const e = JSON.parse(r) as QueueEntry;
         return e.socketId !== socketId;
       });
