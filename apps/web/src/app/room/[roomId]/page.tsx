@@ -13,6 +13,9 @@ import { sendGTMEvent } from '@next/third-parties/google';
 import { SkipMeter } from '@/components/chat/skip-meter';
 import { FeedbackModal } from '@/components/chat/feedback-modal';
 import { useSession } from '@/components/providers/session-provider';
+import { RewardedAdModal } from '@/components/ads/rewarded-ad-modal';
+import { AffiliateCard } from '@/components/chat/affiliate-card';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -33,6 +36,8 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [cooldownSeconds, setCooldownSeconds] = useState<number | null>(null);
+  const [showRewardedAd, setShowRewardedAd] = useState(false);
+  const [currentTopic, setCurrentTopic] = useState<string>('');
   
   const { uuid, skipCount, updateSessionInfo } = useSession();
   
@@ -81,6 +86,8 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
     const handleMatched = (data: any) => {
       setIcebreaker(data.icebreakerPrompt);
       setActiveRoomId(data.roomId);
+      setCurrentTopic(data.topic || '');
+      sendGTMEvent({ event: 'matched', topic: data.topic });
       sendGTMEvent({ event: 'icebreaker_shown' });
       // Start 20s countdown
       setChatLocked(true);
@@ -100,6 +107,7 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
 
     const handleSkipDenied = (data: { cooldownSeconds: number }) => {
       setCooldownSeconds(data.cooldownSeconds);
+      setShowRewardedAd(true); // Trigger Earn Loop
       sendGTMEvent({ event: 'skip_limit_hit' });
     };
 
@@ -269,6 +277,14 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
         )}
       </AnimatePresence>
 
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[calc(100%-2rem)] px-4 pointer-events-none">
+        <div className="pointer-events-auto flex flex-col items-center gap-4">
+          {showFeedback && currentTopic && uuid && (
+             <AffiliateCard topic={currentTopic} uuid={uuid} />
+          )}
+        </div>
+      </div>
+
       <FeedbackModal 
         isOpen={showFeedback} 
         onClose={() => {
@@ -277,6 +293,18 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
         }}
         roomId={activeRoomId || params.roomId}
         uuid={uuid || ''}
+      />
+
+      <RewardedAdModal 
+        isOpen={showRewardedAd}
+        onClose={() => setShowRewardedAd(false)}
+        uuid={uuid || ''}
+        onSuccess={(newCount) => {
+           updateSessionInfo({ skipCount: newCount });
+           setShowRewardedAd(false);
+           setCooldownSeconds(null);
+           toast.info('Skips refilled! You can skip now.');
+        }}
       />
 
     </main>
