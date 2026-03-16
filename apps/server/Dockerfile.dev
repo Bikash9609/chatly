@@ -1,9 +1,17 @@
 FROM node:20-alpine
 
+# Install libc6-compat if needed (e.g. for some native modules)
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
+
 COPY package*.json yarn.lock .yarnrc.yml ./
 COPY .yarn/ ./.yarn/
+
+# Copy all workspace package.json files to ensure Yarn correctly identifies workspaces
+COPY apps/web/package*.json ./apps/web/
 COPY apps/server/package*.json ./apps/server/
+
 RUN corepack enable && yarn install
 
 # Dev server runs from root workspaces

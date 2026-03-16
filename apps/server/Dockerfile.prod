@@ -1,21 +1,31 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY package*.json yarn.lock tsconfig.json .yarnrc.yml ./
+
+COPY package*.json yarn.lock .yarnrc.yml ./
 COPY .yarn/ ./.yarn/
+
+# Copy all workspace package.json files for correct Yarn resolution
+COPY apps/web/package*.json ./apps/web/
 COPY apps/server/package*.json ./apps/server/
+
 RUN corepack enable && yarn install
 COPY . .
-RUN yarn build
+RUN yarn workspace @chatly/server build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV production
+
 COPY package*.json yarn.lock .yarnrc.yml ./
 COPY .yarn/ ./.yarn/
+
+# Copy all workspace package.json files for production install
+COPY apps/web/package*.json ./apps/web/
 COPY apps/server/package*.json ./apps/server/
+
 RUN corepack enable && yarn workspaces focus @chatly/server --production
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/apps/server/dist ./dist
 
 EXPOSE 4000
 CMD ["node", "dist/index.js"]

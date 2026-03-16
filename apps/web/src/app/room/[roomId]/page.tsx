@@ -25,7 +25,7 @@ interface Message {
 
 export default function ChatRoom({ params }: { params: { roomId: string } }) {
   const router = useRouter();
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, lastMatch, setLastMatch } = useSocket();
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -43,6 +43,7 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
   
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasInitialized = useRef(false);
 
   // Scroll to bottom on new message
   useEffect(() => {
@@ -57,10 +58,6 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
       return;
     }
 
-    // Usually we arrive here after 'matched' event in /chat, but if we refresh,
-    // we're disconnected from room. For MVP, refresh = lost chat.
-    
-    // Fallback: request state if needed, or just let them get disconnected
     const handlePartnerMessage = (text: string) => {
       setMessages((prev) => [...prev, { id: Math.random().toString(), text, sender: 'partner' }]);
       setPartnerTyping(false);
@@ -82,8 +79,10 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
       setShowFeedback(true);
     };
 
-    // Replay 'matched' if it happens after mount (rare)
     const handleMatched = (data: any) => {
+      if (hasInitialized.current) return;
+      hasInitialized.current = true;
+      
       setIcebreaker(data.icebreakerPrompt);
       setActiveRoomId(data.roomId);
       setCurrentTopic(data.topic || '');
@@ -104,6 +103,12 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
         });
       }, 1000);
     };
+
+    // If we already have match data for this room, use it immediately
+    if (lastMatch && lastMatch.roomId === params.roomId && !hasInitialized.current) {
+      handleMatched(lastMatch);
+      setLastMatch(null);
+    }
 
     const handleSkipDenied = (data: { cooldownSeconds: number }) => {
       setCooldownSeconds(data.cooldownSeconds);
@@ -131,7 +136,7 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
       socket.off('skip_denied', handleSkipDenied);
       socket.off('skip_accepted', handleSkipAccepted);
     };
-  }, [socket, isConnected, router]);
+  }, [socket, isConnected, router, lastMatch, params.roomId]);
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();

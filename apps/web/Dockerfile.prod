@@ -1,19 +1,31 @@
 FROM node:20-alpine AS builder
 
+# Install libc6-compat for Next.js build
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
+
 COPY package*.json yarn.lock .yarnrc.yml ./
 COPY .yarn/ ./.yarn/
+
+# Copy all workspace package.json files for correct Yarn resolution
 COPY apps/web/package*.json ./apps/web/
+COPY apps/server/package*.json ./apps/server/
+
 RUN corepack enable && yarn install
 COPY . .
-RUN yarn build
+RUN yarn workspace @chatly/web build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
+
+# Install libc6-compat for Next.js runtime
+RUN apk add --no-cache libc6-compat
+
 ENV NODE_ENV production
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/apps/web/public ./public
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./.next/static
 
 EXPOSE 3000
 CMD ["node", "server.js"]

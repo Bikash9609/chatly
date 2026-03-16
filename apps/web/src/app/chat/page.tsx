@@ -20,12 +20,23 @@ const TOPICS = [
 export default function TopicSelector() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, lastMatch, setLastMatch } = useSocket();
   const router = useRouter();
+
+  // Listen for the match via global state
+  useEffect(() => {
+    if (lastMatch) {
+      sendGTMEvent({ event: 'match_found', topic: lastMatch.topic });
+      router.push(`/room/${lastMatch.roomId}`);
+    }
+  }, [lastMatch, router]);
 
   const handleStartMatchmaking = () => {
     if (!socket || !isConnected) return;
     
+    // Clear previous match to avoid stale redirects
+    setLastMatch(null);
+
     // Default to 'any' if nothing selected
     const topic = selectedTopic || 'any';
     
@@ -33,12 +44,6 @@ export default function TopicSelector() {
     sendGTMEvent({ event: 'matchmaking_start', topic });
 
     socket.emit('join_queue', { topic });
-
-    // Listen for the match
-    socket.once('matched', (data: { roomId: string; topic: string; icebreakerPrompt: string }) => {
-      sendGTMEvent({ event: 'match_found', topic: data.topic });
-      router.push(`/room/${data.roomId}`);
-    });
   };
 
   const handleCancel = () => {
