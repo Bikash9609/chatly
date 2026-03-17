@@ -8,7 +8,7 @@
 
 | User Chat Experience        | Admin Dashboard               |
 | --------------------------- | ----------------------------- |
-| ![Chat Demo](demo/chat.mov) | ![Admin Demo](demo/admin.mov) |
+| ![Chat Demo](./demo/chat.mov) | ![Admin Demo](./demo/admin.mov) |
 
 ---
 
