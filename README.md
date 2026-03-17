@@ -8,7 +8,15 @@
 
 | User Chat Experience        | Admin Dashboard               |
 | --------------------------- | ----------------------------- |
-| ![Chat Demo](https://github.com/Bikash9609/chatly/raw/refs/heads/master/demo/admin.mov) | ![Admin Demo]([./demo/admin.mov](https://github.com/Bikash9609/chatly/blob/master/demo/admin.mov)) |
+
+
+
+https://github.com/user-attachments/assets/059061cd-79dd-4126-bbda-72f04609a5a9
+
+
+https://github.com/user-attachments/assets/e7a9698c-cbcc-40c3-a871-5f25e88901f9
+
+
 
 ---
 
