@@ -20,6 +20,8 @@ const TOPICS = [
 
 const MIN_SEARCH_TIME = 5000; // 5 seconds
 
+import { Logo } from "@/components/ui/logo";
+
 export default function TopicSelector() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -100,7 +102,11 @@ export default function TopicSelector() {
   };
 
   return (
-    <main className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-6 max-w-md mx-auto relative overflow-hidden">
+    <main className="flex min-h-dvh flex-col items-center justify-center p-6 max-w-md mx-auto relative overflow-hidden">
+      <div className="absolute top-8 left-0 right-0 flex justify-center z-10">
+        <Logo />
+      </div>
+
       <AnimatePresence mode="wait">
         {!isSearching ? (
           <motion.div
@@ -108,7 +114,7 @@ export default function TopicSelector() {
             initial={{opacity: 0, scale: 0.95}}
             animate={{opacity: 1, scale: 1}}
             exit={{opacity: 0, scale: 1.05}}
-            className="w-full space-y-8 text-center pb-24 md:pb-0">
+            className="w-full space-y-8 text-center pb-24 md:pb-0 pt-16">
             <div className="space-y-2">
               <h2 className="text-3xl font-bold tracking-tight">
                 What&apos;s on your mind?
@@ -144,7 +150,7 @@ export default function TopicSelector() {
             <div className="pt-8">
               <Button
                 size="lg"
-                className="w-full h-14 text-lg font-semibold rounded-xl"
+                className="w-full h-14 text-lg font-semibold rounded-xl shadow-lg shadow-primary/20"
                 disabled={!isConnected}
                 onClick={() => handleStartMatchmaking()}>
                 {!isConnected
@@ -160,7 +166,7 @@ export default function TopicSelector() {
             key="searching"
             initial={{opacity: 0, scale: 0.95}}
             animate={{opacity: 1, scale: 1}}
-            className="w-full flex flex-col items-center justify-center space-y-6 text-center">
+            className="w-full flex flex-col items-center justify-center space-y-6 text-center pt-16">
             <div className="relative">
               <div className="absolute inset-0 rounded-full blur-xl bg-primary/20 animate-pulse" />
               <Loader2 className="w-16 h-16 animate-spin text-primary relative z-10" />
@@ -187,7 +193,7 @@ export default function TopicSelector() {
               />
             </div>
 
-            <Button variant="ghost" onClick={handleCancel} className="mt-8">
+            <Button variant="ghost" onClick={handleCancel} className="mt-8 rounded-full">
               Cancel Search
             </Button>
           </motion.div>

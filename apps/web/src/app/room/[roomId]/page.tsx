@@ -15,11 +15,15 @@ import { FeedbackModal } from '@/components/chat/feedback-modal';
 import { useSession } from '@/components/providers/session-provider';
 import { RewardedAdModal } from '@/components/ads/rewarded-ad-modal';
 import { toast } from 'sonner';
+import { Logo } from '@/components/ui/logo';
+import { filterContent } from '@/lib/filters';
+import { AdSenseBanner } from '@/components/ads/adsense-banner';
 
 interface Message {
   id: string;
   text: string;
   sender: 'me' | 'partner' | 'system';
+  timestamp: Date;
 }
 
 export default function ChatRoom({ params }: { params: Promise<{ roomId: string }> }) {
@@ -95,7 +99,13 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
     if (!socket || !isConnected) return;
 
     const handlePartnerMessage = (text: string) => {
-      setMessages((prev) => [...prev, { id: Math.random().toString(), text, sender: 'partner' }]);
+      const filtered = filterContent(text);
+      setMessages((prev) => [...prev, { 
+        id: Math.random().toString(), 
+        text: filtered, 
+        sender: 'partner',
+        timestamp: new Date()
+      }]);
       setPartnerTyping(false);
     };
 
@@ -108,7 +118,12 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
     const handlePartnerLeft = ({ reason }: { reason: string }) => {
       setMessages((prev) => [
         ...prev, 
-        { id: Math.random().toString(), text: `Partner left (${reason}). Chat ended.`, sender: 'system' }
+        { 
+          id: Math.random().toString(), 
+          text: `Partner left (${reason}). Chat ended.`, 
+          sender: 'system',
+          timestamp: new Date()
+        }
       ]);
       setChatLocked(true);
       trackEvent('chat_ended', { category: 'engagement', reason });
@@ -147,8 +162,14 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
     e.preventDefault();
     if (!inputText.trim() || chatLocked || !socket) return;
 
-    socket.emit('send_message', inputText.trim());
-    setMessages((prev) => [...prev, { id: Math.random().toString(), text: inputText.trim(), sender: 'me' }]);
+    const filtered = filterContent(inputText.trim());
+    socket.emit('send_message', filtered);
+    setMessages((prev) => [...prev, { 
+      id: Math.random().toString(), 
+      text: filtered, 
+      sender: 'me',
+      timestamp: new Date()
+    }]);
     setInputText('');
     trackEngagement.messageSent();
   };
@@ -172,92 +193,100 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
     };
 
   return (
-    <main className="flex flex-col h-screen max-w-3xl mx-auto bg-background/50 relative">
+    <main className="flex flex-col h-dvh max-w-3xl mx-auto bg-background/50 relative overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-md z-10">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleLeave}>
+      <header className="flex items-center justify-between p-4 border-b bg-background/80 backdrop-blur-md z-10 shrink-0">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={handleLeave} className="rounded-full">
             <LogOut className="w-5 h-5 text-muted-foreground" />
           </Button>
-          <div className="flex flex-col">
-            <span className="font-semibold text-sm">Anonymous Chat</span>
-            <span className="text-xs text-green-500 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" /> Online
-            </span>
-          </div>
+          <Logo className="scale-90 origin-left" />
         </div>
 
         <div className="flex items-center gap-4">
           <div className="hidden sm:block">
             <SkipMeter skipCount={skipCount} cooldownSeconds={cooldownSeconds} />
           </div>
-          <Button variant="secondary" onClick={handleSkip} className="gap-2 shrink-0">
+          <Button variant="secondary" onClick={handleSkip} className="gap-2 shrink-0 rounded-full h-10 px-6 font-semibold border-2 border-primary/10 hover:border-primary/30 transition-all">
             <SkipForward className="w-4 h-4" /> Skip
           </Button>
         </div>
       </header>
 
       {/* Mobile Skip Meter (visible only on small screens below header) */}
-      <div className="sm:hidden px-4 py-2 border-b bg-background/50 flex justify-center">
+      <div className="sm:hidden px-4 py-2 border-b bg-background/50 flex justify-center shrink-0">
         <SkipMeter skipCount={skipCount} cooldownSeconds={cooldownSeconds} />
       </div>
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-4">
-        <div className="flex flex-col gap-4 pb-4">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex flex-col max-w-[80%] ${
-                msg.sender === 'me' ? 'self-end items-end' : 
-                msg.sender === 'system' ? 'self-center items-center' : 'self-start items-start'
-              }`}
-            >
-              {msg.sender === 'system' ? (
-                <span className="text-xs bg-muted text-muted-foreground px-3 py-1 rounded-full my-4">
-                  {msg.text}
+      <div className="flex-1 overflow-hidden relative">
+        <ScrollArea className="h-full p-4">
+          <div className="flex flex-col gap-4 pb-4">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex flex-col max-w-[85%] ${
+                  msg.sender === 'me' ? 'self-end items-end' : 
+                  msg.sender === 'system' ? 'self-center items-center' : 'self-start items-start'
+                }`}
+              >
+                {msg.sender === 'system' ? (
+                  <span className="text-[10px] uppercase tracking-widest font-bold bg-muted text-muted-foreground px-3 py-1 rounded-full my-4">
+                    {msg.text}
+                  </span>
+                ) : (
+                  <div className="relative group">
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl shadow-sm ${
+                        msg.sender === 'me'
+                          ? 'bg-primary text-primary-foreground rounded-br-none'
+                          : 'bg-muted text-foreground rounded-bl-none'
+                      }`}
+                    >
+                      <p className="text-sm md:text-base leading-relaxed">{msg.text}</p>
+                    </div>
+                    <span className={`text-[9px] mt-1 block opacity-30 group-hover:opacity-80 transition-opacity text-muted-foreground font-medium ${
+                      msg.sender === 'me' ? 'text-right' : 'text-left'
+                    }`}>
+                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+            
+            {partnerTyping && (
+              <div className="self-start text-xs text-muted-foreground animate-pulse px-4 py-2 bg-muted/30 rounded-full flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                 </span>
-              ) : (
-                <div
-                  className={`px-4 py-2.5 rounded-2xl ${
-                    msg.sender === 'me'
-                      ? 'bg-primary text-primary-foreground rounded-br-sm'
-                      : 'bg-muted text-foreground rounded-bl-sm'
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              )}
-            </div>
-          ))}
-          
-          {partnerTyping && (
-            <div className="self-start text-xs text-muted-foreground animate-pulse px-2 flex items-center gap-1">
-              Partner is typing <span className="flex gap-0.5"><span className="animate-bounce">.</span><span className="animate-bounce delay-100">.</span><span className="animate-bounce delay-200">.</span></span>
-            </div>
-          )}
-          
-          <div ref={scrollRef} />
-        </div>
-      </ScrollArea>
+                Partner is typing
+              </div>
+            )}
+            
+            <div ref={scrollRef} />
+          </div>
+        </ScrollArea>
+      </div>
 
       {/* Input Area */}
-      <footer className="p-4 border-t bg-background/80 backdrop-blur-md">
-        <form onSubmit={sendMessage} className="flex gap-2 relative">
+      <footer className="p-4 border-t bg-background/80 backdrop-blur-md shrink-0">
+        <form onSubmit={sendMessage} className="flex gap-2 relative max-w-2xl mx-auto">
           <Input
             value={inputText}
             onChange={handleTyping}
-            placeholder={chatLocked ? 'Wait for countdown to end...' : 'Type a message...'}
+            placeholder={chatLocked ? `Wait for countdown (${countdown}s)...` : 'Type a message...'}
             disabled={chatLocked}
-            className="rounded-full h-12 px-6 pr-14"
+            className="rounded-full h-14 px-6 pr-16 bg-muted/50 border-none focus-visible:ring-primary/50 text-base"
           />
           <Button 
             type="submit" 
             size="icon" 
             disabled={!inputText.trim() || chatLocked}
-            className="absolute right-1 top-1 h-10 w-10 rounded-full"
+            className="absolute right-1.5 top-1.5 h-11 w-11 rounded-full shadow-lg shadow-primary/20 transition-transform active:scale-90"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-5 h-5" />
           </Button>
         </form>
       </footer>
@@ -269,25 +298,23 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="absolute inset-x-4 top-24 z-20 pointer-events-none flex justify-center"
+            className="absolute inset-x-4 bottom-24 z-20 pointer-events-none flex justify-center"
           >
             <Card className="p-6 max-w-sm w-full bg-background/95 backdrop-blur-xl border-primary/20 shadow-2xl shadow-primary/10">
               <div className="space-y-4 text-center">
-                <div className="flex items-center justify-center gap-2 text-primary font-semibold mb-2">
-                  <Clock className="w-5 h-5 animate-spin-slow" /> Unlocks in {countdown}s
+                <div className="flex items-center justify-center gap-2 text-primary font-bold mb-2 uppercase tracking-tighter text-sm">
+                  <Clock className="w-4 h-4 animate-spin-slow" /> Unlocks in {countdown}s
                 </div>
                 <h3 className="text-lg font-bold leading-tight">Icebreaker Prompt</h3>
                 <p className="text-muted-foreground font-medium text-lg leading-relaxed">
                   &ldquo;{icebreaker}&rdquo;
                 </p>
-                <p className="text-xs text-muted-foreground/50 pt-2">Think of your answer. Chat unlocks soon.</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/50 pt-2">Think of your answer</p>
               </div>
             </Card>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Removed Redundant AffiliateCard container - now in modal */}
 
       <FeedbackModal 
         isOpen={showFeedback} 
@@ -323,5 +350,3 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
     </main>
   );
 }
-
-import { AdSenseBanner } from '@/components/ads/adsense-banner';

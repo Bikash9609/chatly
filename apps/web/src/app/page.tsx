@@ -7,10 +7,16 @@ import Image from "next/image";
 import {AdSenseBanner} from "@/components/ads/adsense-banner";
 import heroImage from "@/assets/63586825_speech_bubble_chat_talk_communication_icon_3d_background_illustration.png";
 
+import { Logo } from "@/components/ui/logo";
+
 export default function LandingPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gradient-to-b from-background to-muted/50 overflow-hidden">
-      <div className="max-w-3xl text-center space-y-8 relative">
+    <main className="flex min-h-dvh flex-col items-center justify-center p-6 bg-gradient-to-b from-background to-muted/50 overflow-hidden relative">
+      <div className="absolute top-8 left-0 right-0 flex justify-center z-10">
+        <Logo />
+      </div>
+
+      <div className="max-w-3xl text-center space-y-8 relative pt-20">
         <div className="relative w-64 h-64 md:w-80 md:h-80 mx-auto mb-4 animate-float">
           <Image
             src={heroImage}
@@ -35,7 +41,7 @@ export default function LandingPage() {
           <Link href="/chat">
             <Button
               size="lg"
-              className="h-14 px-8 text-lg font-semibold rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all"
+              className="h-14 px-8 text-lg font-semibold rounded-full shadow-xl shadow-primary/25 hover:shadow-primary/40 transition-all hover:scale-105 active:scale-95"
               onClick={() =>
                 trackEvent("cta_click", {
                   category: "engagement",
@@ -48,22 +54,22 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16 text-left pb-24 md:pb-0">
-          <div className="space-y-2">
-            <h3 className="font-bold text-lg">🔒 100% Anonymous</h3>
+          <div className="space-y-2 group">
+            <h3 className="font-bold text-lg group-hover:text-primary transition-colors">🔒 100% Anonymous</h3>
             <p className="text-muted-foreground text-sm">
               We don&apos;t ask for your name, email, or phone number. Your
               identity is always hidden.
             </p>
           </div>
-          <div className="space-y-2">
-            <h3 className="font-bold text-lg">⚡ Instant Matching</h3>
+          <div className="space-y-2 group">
+            <h3 className="font-bold text-lg group-hover:text-primary transition-colors">⚡ Instant Matching</h3>
             <p className="text-muted-foreground text-sm">
               Pick a topic you care about and get matched with someone in
               seconds.
             </p>
           </div>
-          <div className="space-y-2">
-            <h3 className="font-bold text-lg">💬 Deep Conversations</h3>
+          <div className="space-y-2 group">
+            <h3 className="font-bold text-lg group-hover:text-primary transition-colors">💬 Deep Conversations</h3>
             <p className="text-muted-foreground text-sm">
               Every chat starts with an icebreaker prompt to skip the small
               talk.
