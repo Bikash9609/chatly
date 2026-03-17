@@ -58,7 +58,7 @@ app.post('/api/admin/affiliates', async (req, res) => {
     const { password, topic, url, title, imageUrl } = req.body;
     
     // Simple shared secret for MVP admin
-    if (password !== 'chatly-admin-2026') {
+    if (password !== (process.env.ADMIN_PASSWORD || 'chatly-admin-2026')) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -84,7 +84,7 @@ app.post('/api/admin/affiliates', async (req, res) => {
 app.get('/api/admin/affiliates', async (req, res) => {
   try {
     const { password } = req.query;
-    if (password !== 'chatly-admin-2026') {
+    if (password !== (process.env.ADMIN_PASSWORD || 'chatly-admin-2026')) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const links = await AffiliateLink.find().sort({ createdAt: -1 });
@@ -134,7 +134,7 @@ app.post('/api/tracking/impression', async (req, res) => {
 app.get('/api/admin/stats/daily', async (req, res) => {
   try {
     const { password } = req.query;
-    if (password !== 'chatly-admin-2026') return res.status(401).json({ error: 'Unauthorized' });
+    if (password !== (process.env.ADMIN_PASSWORD || 'chatly-admin-2026')) return res.status(401).json({ error: 'Unauthorized' });
 
     // Aggregate clicks per day for last 7 days
     const sevenDaysAgo = new Date();

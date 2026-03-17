@@ -58,7 +58,8 @@ export default function AdminAffiliates() {
   };
 
   const handleAuthorize = () => {
-    if (password === 'chatly-admin-2026') {
+    const adminPass = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'chatly-admin-2026';
+    if (password === adminPass) {
       setIsAuthorized(true);
       fetchLinks();
     } else {
