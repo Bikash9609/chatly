@@ -5,6 +5,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 // ---------------------------------------------------------------------------
 export interface ISession extends Document {
   uuid: string;
+  ip?: string;
   karma: number;
   skipCount: number;
   skipResetAt: Date;
@@ -14,6 +15,7 @@ export interface ISession extends Document {
 
 const SessionSchema = new Schema<ISession>({
   uuid:          { type: String, required: true, unique: true, index: true },
+  ip:            { type: String, index: true },
   karma:         { type: Number, default: 0 },
   skipCount:     { type: Number, default: 0 },
   skipResetAt:   { type: Date, default: () => new Date() },

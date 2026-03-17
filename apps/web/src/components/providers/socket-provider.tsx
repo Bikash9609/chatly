@@ -51,7 +51,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setIsConnected(false);
     });
 
-    socketInstance.on('registered', (data: { skipCount: number; karma: number }) => {
+    socketInstance.on('registered', (data: { uuid?: string; skipCount: number; karma: number }) => {
       updateSessionInfo(data);
     });
 

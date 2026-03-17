@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useEffect} from "react";
+import {useState, useEffect, useCallback, useRef} from "react";
 import {motion, AnimatePresence} from "framer-motion";
 import {Button} from "@/components/ui/button";
 import {useSocket} from "@/components/providers/socket-provider";
@@ -8,6 +8,7 @@ import {useRouter} from "next/navigation";
 import {Badge} from "@/components/ui/badge";
 import {Loader2} from "lucide-react";
 import {trackEvent} from "@/lib/analytics";
+import {AdSenseBanner} from "@/components/ads/adsense-banner";
 
 const TOPICS = [
   {id: "movies", label: "🎬 Movies & TV"},
@@ -17,43 +18,85 @@ const TOPICS = [
   {id: "vent", label: "🤬 Venting"},
 ];
 
+const MIN_SEARCH_TIME = 5000; // 5 seconds
+
 export default function TopicSelector() {
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("chatly_last_topic");
+      if (stored) {
+        try {
+          const {topic, date} = JSON.parse(stored);
+          const today = new Date().toISOString().split("T")[0];
+          if (date === today) return topic;
+        } catch {
+          return null;
+        }
+      }
+    }
+    return null;
+  });
   const [isSearching, setIsSearching] = useState(false);
+  const [searchStartedAt, setSearchStartedAt] = useState<number | null>(null);
+  const hasAutoStarted = useRef(false);
   const {socket, isConnected, lastMatch, setLastMatch} = useSocket();
   const router = useRouter();
 
-  // Listen for the match via global state
-  useEffect(() => {
-    if (lastMatch) {
-      trackEvent("match_found", {
-        category: "engagement",
-        topic: lastMatch.topic,
-      });
-      router.push(`/room/${lastMatch.roomId}`);
-    }
-  }, [lastMatch, router]);
-
-  const handleStartMatchmaking = () => {
-    if (!socket || !isConnected) return;
+  const handleStartMatchmaking = useCallback((topicOverride?: string) => {
+    if (!socket || !isConnected || isSearching) return;
 
     // Clear previous match to avoid stale redirects
     setLastMatch(null);
 
-    // Default to 'any' if nothing selected
-    const topic = selectedTopic || "any";
+    const topic = topicOverride || selectedTopic || "any";
+
+    // Save selection for today
+    const today = new Date().toISOString().split("T")[0];
+    localStorage.setItem("chatly_last_topic", JSON.stringify({
+      topic,
+      date: today
+    }));
 
     setIsSearching(true);
+    setSearchStartedAt(Date.now());
     trackEvent("matchmaking_start", {category: "engagement", topic});
 
     socket.emit("join_queue", {topic});
-  };
+  }, [socket, isConnected, isSearching, selectedTopic, setLastMatch]);
+
+  useEffect(() => {
+    if (hasAutoStarted.current || !isConnected || !selectedTopic) return;
+
+    // We already have selectedTopic from initializer if it was for today
+    hasAutoStarted.current = true;
+    setTimeout(() => {
+      handleStartMatchmaking(selectedTopic);
+    }, 0);
+  }, [isConnected, handleStartMatchmaking, selectedTopic]);
+
+  // Listen for the match via global state
+  useEffect(() => {
+    if (lastMatch && searchStartedAt) {
+      const elapsed = Date.now() - searchStartedAt;
+      const remaining = Math.max(0, MIN_SEARCH_TIME - elapsed);
+
+      const timer = setTimeout(() => {
+        trackEvent("match_found", {
+          category: "engagement",
+          topic: lastMatch.topic,
+        });
+        router.push(`/room/${lastMatch.roomId}`);
+      }, remaining);
+
+      return () => clearTimeout(timer);
+    }
+  }, [lastMatch, searchStartedAt, router]);
 
   const handleCancel = () => {
     if (!socket) return;
     socket.emit("leave_queue");
-    socket.off("matched"); // Remove the listener
     setIsSearching(false);
+    setSearchStartedAt(null);
   };
 
   return (
@@ -103,7 +146,7 @@ export default function TopicSelector() {
                 size="lg"
                 className="w-full h-14 text-lg font-semibold rounded-xl"
                 disabled={!isConnected}
-                onClick={handleStartMatchmaking}>
+                onClick={() => handleStartMatchmaking()}>
                 {!isConnected
                   ? "Connecting..."
                   : selectedTopic
@@ -128,10 +171,20 @@ export default function TopicSelector() {
                 Looking for a partner...
               </h3>
               <p className="text-muted-foreground animate-pulse">
-                {selectedTopic
+                {selectedTopic && selectedTopic !== "any"
                   ? `Searching in ${TOPICS.find((t) => t.id === selectedTopic)?.label}`
                   : "Searching anyone online"}
               </p>
+            </div>
+
+            {/* Prominent Search Ad */}
+            <div className="w-full bg-muted/30 rounded-2xl p-4 border border-border/50">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Sponsored</p>
+              <AdSenseBanner
+                slot="search-middle"
+                format="rectangle"
+                responsive="true"
+              />
             </div>
 
             <Button variant="ghost" onClick={handleCancel} className="mt-8">
@@ -162,4 +215,3 @@ export default function TopicSelector() {
   );
 }
 
-import {AdSenseBanner} from "@/components/ads/adsense-banner";

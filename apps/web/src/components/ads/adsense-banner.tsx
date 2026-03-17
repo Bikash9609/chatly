@@ -3,9 +3,15 @@
 import { useEffect } from 'react';
 import { trackProfitability } from '@/lib/analytics';
 
+declare global {
+  interface Window {
+    adsbygoogle: unknown[];
+  }
+}
+
 interface AdSenseBannerProps {
   slot: string;
-  format?: 'auto' | 'fluid';
+  format?: 'auto' | 'fluid' | 'rectangle' | 'vertical' | 'horizontal';
   responsive?: 'true' | 'false';
   style?: React.CSSProperties;
 }
@@ -13,7 +19,6 @@ interface AdSenseBannerProps {
 export function AdSenseBanner({ slot, format = 'auto', responsive = 'true', style }: AdSenseBannerProps) {
   useEffect(() => {
     try {
-      // @ts-ignore
       (window.adsbygoogle = window.adsbygoogle || []).push({});
       
       // Log impression

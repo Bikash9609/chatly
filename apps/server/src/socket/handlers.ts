@@ -16,12 +16,29 @@ export function setupSocketHandlers(io: Server) {
 
     // Session Registration (pseudo-auth)
     socket.on('register', async (uuid: string) => {
+      const ip = socket.handshake.address;
+      
       let session = await Session.findOne({ uuid });
-      if (!session) {
-        session = await Session.create({ uuid });
+      
+      // If no session found by UUID, try finding by IP
+      if (!session && ip) {
+        session = await Session.findOne({ ip }).sort({ createdAt: -1 }); // Get latest for this IP
       }
-      activeSockets.set(socket.id, { uuid });
-      socket.emit('registered', { skipCount: session.skipCount, karma: session.karma });
+
+      if (!session) {
+        session = await Session.create({ uuid, ip });
+      } else if (ip && !session.ip) {
+        // Update session with IP if it was missing
+        session.ip = ip;
+        await session.save();
+      }
+
+      activeSockets.set(socket.id, { uuid: session.uuid });
+      socket.emit('registered', { 
+        uuid: session.uuid, // Send back the UUID in case it changed (found via IP)
+        skipCount: session.skipCount, 
+        karma: session.karma 
+      });
     });
 
     // Join Matchmaking Queue
