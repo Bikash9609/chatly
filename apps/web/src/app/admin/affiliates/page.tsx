@@ -17,8 +17,14 @@ interface AffiliateLink {
   clicks: number;
 }
 
+interface DailyStat {
+  _id: string;
+  count: number;
+}
+
 export default function AdminAffiliates() {
   const [links, setLinks] = useState<AffiliateLink[]>([]);
+  const [stats, setStats] = useState<{ clicks: DailyStat[], impressions: DailyStat[] }>({ clicks: [], impressions: [] });
   const [password, setPassword] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -39,6 +45,12 @@ export default function AdminAffiliates() {
        if (res.ok) {
          const data = await res.json();
          setLinks(data);
+       }
+       
+       const statsRes = await fetch(`${API_URL}/api/admin/stats/daily?password=${password}`);
+       if (statsRes.ok) {
+         const statsData = await statsRes.json();
+         setStats(statsData);
        }
      } catch {
        // Error handled by missing state update or generic UI
@@ -108,8 +120,10 @@ export default function AdminAffiliates() {
             <ArrowLeft className="w-4 h-4" /> Back to App
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold">Affiliate Manager</h1>
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
       </div>
+
+      <StatsGraph stats={stats} />
 
       <Card>
         <CardHeader>
@@ -186,5 +200,61 @@ export default function AdminAffiliates() {
         ))}
       </div>
     </div>
+  );
+}
+
+function StatsGraph({ stats }: { stats: { clicks: DailyStat[], impressions: DailyStat[] } }) {
+  const maxVal = Math.max(...stats.impressions.map(i => i.count), ...stats.clicks.map(c => c.count), 1);
+  
+  // Create a combined map for merging
+  const dataMap = new Map();
+  stats.impressions.forEach(i => dataMap.set(i._id, { id: i._id, impressions: i.count, clicks: 0 }));
+  stats.clicks.forEach(c => {
+    const existing = dataMap.get(c._id) || { id: c._id, impressions: 0, clicks: 0 };
+    existing.clicks = c.count;
+    dataMap.set(c._id, existing);
+  });
+  
+  const sortedData = Array.from(dataMap.values()).sort((a, b) => a.id.localeCompare(b.id));
+
+  return (
+    <Card className="overflow-hidden bg-gradient-to-br from-card to-muted/30">
+      <CardHeader>
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+          <span>Daily Performance (Last 7 Days)</span>
+          <div className="flex gap-4 text-[10px] uppercase font-bold tracking-wider">
+            <span className="flex items-center gap-1.5 text-blue-500"><span className="w-2 h-2 rounded-full bg-blue-500" /> Impressions</span>
+            <span className="flex items-center gap-1.5 text-primary"><span className="w-2 h-2 rounded-full bg-primary" /> Clicks</span>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-48 flex items-end gap-2 pt-4">
+          {sortedData.length === 0 && <div className="w-full flex items-center justify-center text-muted-foreground text-xs italic">No data yet available</div>}
+          {sortedData.map((d) => (
+            <div key={d.id} className="flex-1 flex flex-col items-center gap-2 group relative">
+              <div className="w-full flex justify-center gap-1 items-end h-32">
+                 <div 
+                   className="w-3 bg-blue-500/80 rounded-t-sm transition-all duration-500 group-hover:bg-blue-500" 
+                   style={{ height: `${(d.impressions / maxVal) * 100}%` }}
+                 />
+                 <div 
+                   className="w-3 bg-primary/80 rounded-t-sm transition-all duration-500 group-hover:bg-primary" 
+                   style={{ height: `${(d.clicks / maxVal) * 100}%` }}
+                 />
+              </div>
+              <span className="text-[9px] text-muted-foreground font-mono">{d.id.split('-').slice(1).join('/')}</span>
+              
+              {/* Tooltip */}
+              <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-background border shadow-xl p-2 rounded text-[10px] z-50 whitespace-nowrap">
+                <p className="font-bold border-b pb-1 mb-1">{d.id}</p>
+                <p className="text-blue-500">Viewed: {d.impressions}</p>
+                <p className="text-primary">Clicked: {d.clicks}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

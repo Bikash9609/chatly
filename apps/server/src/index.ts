@@ -5,7 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectMongo } from './lib/mongo';
 import { setupSocketHandlers } from './socket/handlers';
-import { Feedback, AffiliateLink, ClickLog, Session } from './models';
+import { Feedback, AffiliateLink, ClickLog, Session, ImpressionLog } from './models';
 
 dotenv.config();
 
@@ -114,6 +114,54 @@ app.post('/api/affiliates/click', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to log click' });
+  }
+});
+
+// Log impression (affiliate view or adsense view)
+app.post('/api/tracking/impression', async (req, res) => {
+  try {
+    const { uuid, type, entityId, topic } = req.body;
+    if (!uuid || !type) return res.status(400).json({ error: 'Missing uuid/type' });
+    
+    await ImpressionLog.create({ uuid, type, entityId, topic });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to log impression' });
+  }
+});
+
+// Admin Stats: Daily Clicks & Impressions (for the graph)
+app.get('/api/admin/stats/daily', async (req, res) => {
+  try {
+    const { password } = req.query;
+    if (password !== 'chatly-admin-2026') return res.status(401).json({ error: 'Unauthorized' });
+
+    // Aggregate clicks per day for last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const clicks = await ClickLog.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+      }},
+      { $sort: { _id: 1 } }
+    ]);
+
+    const impressions = await ImpressionLog.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+      }},
+      { $sort: { _id: 1 } }
+    ]);
+
+    res.json({ clicks, impressions });
+  } catch (err) {
+    console.error('[admin] Stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
 

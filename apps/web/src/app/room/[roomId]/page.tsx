@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, LogOut, Clock, SkipForward } from 'lucide-react';
-import { sendGTMEvent } from '@next/third-parties/google';
+import { trackEngagement, trackEvent } from '@/lib/analytics';
 import { SkipMeter } from '@/components/chat/skip-meter';
 import { FeedbackModal } from '@/components/chat/feedback-modal';
 import { useSession } from '@/components/providers/session-provider';
@@ -60,8 +60,8 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
     setIcebreaker(data.icebreakerPrompt);
     setActiveRoomId(data.roomId);
     setCurrentTopic(data.topic || '');
-    sendGTMEvent({ event: 'matched', topic: data.topic });
-    sendGTMEvent({ event: 'icebreaker_shown' });
+    trackEngagement.chatStart(data.topic || '');
+    trackEvent('icebreaker_shown', { category: 'engagement' });
     
     setChatLocked(true);
     setCountdown(20);
@@ -111,14 +111,14 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
         { id: Math.random().toString(), text: `Partner left (${reason}). Chat ended.`, sender: 'system' }
       ]);
       setChatLocked(true);
-      sendGTMEvent({ event: 'chat_ended', reason });
+      trackEvent('chat_ended', { category: 'engagement', reason });
       setShowFeedback(true);
     };
 
     const handleSkipDenied = (data: { cooldownSeconds: number }) => {
       setCooldownSeconds(data.cooldownSeconds);
       setShowRewardedAd(true);
-      sendGTMEvent({ event: 'skip_limit_hit' });
+      trackEvent('skip_limit_hit', { category: 'engagement' });
     };
 
     const handleSkipAccepted = (data: { skipCount: number }) => {
@@ -150,7 +150,7 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
     socket.emit('send_message', inputText.trim());
     setMessages((prev) => [...prev, { id: Math.random().toString(), text: inputText.trim(), sender: 'me' }]);
     setInputText('');
-    sendGTMEvent({ event: 'message_sent' });
+    trackEngagement.messageSent();
   };
 
   const handleTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -160,7 +160,7 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
 
   const handleSkip = () => {
       if (!socket) return;
-      sendGTMEvent({ event: 'skip_clicked' });
+      trackEngagement.chatSkip();
       socket.emit('skip');
       // Wait for skip_accepted or skip_denied before routing back
     };
@@ -312,6 +312,16 @@ export default function ChatRoom({ params }: { params: Promise<{ roomId: string 
         }}
       />
 
+      {/* Sidebar Ad (Desktop Only) */}
+      <aside className="hidden xl:block fixed left-8 top-1/2 -translate-y-1/2 w-[160px]">
+        <AdSenseBanner slot="room-sidebar-left" format="fluid" responsive="false" style={{ display: 'block', width: '160px', height: '600px' }} />
+      </aside>
+      <aside className="hidden xl:block fixed right-8 top-1/2 -translate-y-1/2 w-[160px]">
+        <AdSenseBanner slot="room-sidebar-right" format="fluid" responsive="false" style={{ display: 'block', width: '160px', height: '600px' }} />
+      </aside>
+
     </main>
   );
 }
+
+import { AdSenseBanner } from '@/components/ads/adsense-banner';

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { sendGTMEvent } from '@next/third-parties/google';
+import { trackEngagement } from '@/lib/analytics';
 import { AffiliateCard } from './affiliate-card';
 
 interface FeedbackModalProps {
@@ -19,7 +19,7 @@ export function FeedbackModal({ isOpen, onClose, roomId, uuid, topic }: Feedback
 
   const handleFeedback = async (rating: 'good' | 'boring' | 'creepy') => {
     setSubmitting(true);
-    sendGTMEvent({ event: 'feedback_submitted', rating });
+    trackEngagement.feedbackSubmitted(rating);
     
     try {
       await fetch('/api/feedback', {

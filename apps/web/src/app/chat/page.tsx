@@ -7,7 +7,7 @@ import { useSocket } from '@/components/providers/socket-provider';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
-import { sendGTMEvent } from '@next/third-parties/google';
+import { trackEvent } from '@/lib/analytics';
 
 const TOPICS = [
   { id: 'movies', label: '🎬 Movies & TV' },
@@ -26,7 +26,7 @@ export default function TopicSelector() {
   // Listen for the match via global state
   useEffect(() => {
     if (lastMatch) {
-      sendGTMEvent({ event: 'match_found', topic: lastMatch.topic });
+      trackEvent('match_found', { category: 'engagement', topic: lastMatch.topic });
       router.push(`/room/${lastMatch.roomId}`);
     }
   }, [lastMatch, router]);
@@ -41,7 +41,7 @@ export default function TopicSelector() {
     const topic = selectedTopic || 'any';
     
     setIsSearching(true);
-    sendGTMEvent({ event: 'matchmaking_start', topic });
+    trackEvent('matchmaking_start', { category: 'engagement', topic });
 
     socket.emit('join_queue', { topic });
   };
@@ -63,10 +63,10 @@ export default function TopicSelector() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05 }}
-            className="w-full space-y-8 text-center"
+            className="w-full space-y-8 text-center pb-24 md:pb-0"
           >
             <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tight">What's on your mind?</h2>
+              <h2 className="text-3xl font-bold tracking-tight">What&apos;s on your mind?</h2>
               <p className="text-muted-foreground">Pick a topic to find a better match, or just skip to talk about anything.</p>
             </div>
 
@@ -81,7 +81,7 @@ export default function TopicSelector() {
                   onClick={() => {
                     setSelectedTopic(selectedTopic === t.id ? null : t.id);
                     if (selectedTopic !== t.id) {
-                      sendGTMEvent({ event: 'topic_selected', topic: t.id });
+                      trackEvent('topic_selected', { category: 'engagement', topic: t.id });
                     }
                   }}
                 >
@@ -127,6 +127,17 @@ export default function TopicSelector() {
         )}
       </AnimatePresence>
 
+      {/* AdSense Placement */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/80 backdrop-blur-sm border-t">
+        <AdSenseBanner slot="chat-bottom-mobile" format="auto" responsive="true" />
+      </div>
+      
+      <aside className="hidden xl:block fixed right-8 top-1/2 -translate-y-1/2 w-[160px]">
+        <AdSenseBanner slot="chat-sidebar-desktop" format="fluid" responsive="false" style={{ display: 'block', width: '160px', height: '600px' }} />
+      </aside>
+
     </main>
   );
 }
+
+import { AdSenseBanner } from '@/components/ads/adsense-banner';

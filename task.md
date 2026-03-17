@@ -1,22 +1,22 @@
 # Chatly MVP — Task Checklist
 
-## Phase 1 — Foundation (Day 1–8) 🔴
+## Phase 1 — Foundation (Day 1–8) ✅
 - [x] P1-01 Monorepo boilerplate — Next.js + Node + Socket.io + MongoDB + Redis
 - [x] P1-02 Anonymous session — UUID in localStorage, no login/email
-- [/] P1-03 Matchmaking queue — Redis queue, topic-first pairing with any-topic fallback
+- [x] P1-03 Matchmaking queue — Redis queue, topic-first pairing with any-topic fallback
 - [x] P1-04 Real-time chat room — Socket.io rooms, typing indicator, disconnect on tab close
 - [x] P1-05 Topic room selector — Pre-chat screen with topic tags
 - [x] P1-06 Skip limiter — 10 skips/hour, visible meter, cooldown timer
 - [x] P1-07 Icebreaker card — Random prompt shown to both users, chat unlocks after 20s
 - [x] P1-08 Post-chat feedback — Good / Boring / Creepy buttons → MongoDB karma collection
 
-## Phase 2 — Earn Layer (Day 9–16) 🔴
+## Phase 2 — Earn Layer (Day 9–16) ✅
 - [x] P2-01 Google AdSense banner — Sidebar desktop, sticky-bottom mobile
 - [x] P2-02 Rewarded ad → skip refill — Watch 15s ad, get +3 skips
 - [x] P2-03 Post-chat affiliate card — Topic-contextual affiliate links after every chat
 - [x] P2-04 Affiliate link admin panel — Map topic → affiliate URL without redeploy
 - [x] P2-05 Sponsored room slot — Branded room (flat monthly fee, hardcoded initially)
-- [x] P2-06 UTM + click tracker — Log affiliate clicks + ad impressions to MongoDB, CSV export
+- [x] P2-06 UTM + interaction tracker — Log clicks/impressions to MongoDB, dashboard graph
 
 ## Phase 3 — Retention (Day 17–22) 🟡
 - [ ] P3-01 Karma score engine — Formula: (duration×1) + (Good×3) - (Creepy×10)

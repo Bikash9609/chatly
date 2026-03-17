@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Play, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { trackProfitability } from '@/lib/analytics';
 
 interface RewardedAdModalProps {
   isOpen: boolean;
@@ -32,6 +33,8 @@ export function RewardedAdModal({ isOpen, onClose, uuid, onSuccess }: RewardedAd
     //   adType: 'rewarded',
     //   onAdComplete: () => handleReward(),
     // });
+    
+    trackProfitability.rewardedAdStart('skips_refill');
     
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -57,6 +60,7 @@ export function RewardedAdModal({ isOpen, onClose, uuid, onSuccess }: RewardedAd
       if (data.success) {
         setIsFinished(true);
         onSuccess(data.skipCount);
+        trackProfitability.rewardedAdComplete('skips_refill');
         toast.success('Reward granted: +3 Skips matched!');
       }
     } catch (err) {

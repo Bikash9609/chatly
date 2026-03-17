@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, ShoppingBag } from 'lucide-react';
-import { sendGTMEvent } from '@next/third-parties/google';
+import { trackProfitability } from '@/lib/analytics';
 import Image from 'next/image';
 
 interface AffiliateLink {
@@ -30,7 +30,16 @@ export function AffiliateCard({ topic, uuid }: AffiliateCardProps) {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL ? process.env.NEXT_PUBLIC_SOCKET_URL.replace('socket.io', '') : 'http://localhost:4000'}/api/affiliates/${topic}`);
         const data = await res.json();
-        if (data) setLink(data);
+        if (data) {
+          setLink(data);
+          
+          // Log impression
+          fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL ? process.env.NEXT_PUBLIC_SOCKET_URL.replace('socket.io', '') : 'http://localhost:4000'}/api/tracking/impression`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid, type: 'affiliate', entityId: data._id, topic }),
+          }).catch(() => {});
+        }
       } catch (err) {
         console.error('[affiliate] Fetch error:', err);
       } finally {
@@ -39,17 +48,12 @@ export function AffiliateCard({ topic, uuid }: AffiliateCardProps) {
     };
 
     if (topic) fetchLink();
-  }, [topic]);
+  }, [topic, uuid]);
 
   const handleClick = async () => {
     if (!link) return;
     
-    sendGTMEvent({ 
-      event: 'affiliate_click', 
-      topic, 
-      linkId: link._id,
-      url: link.url 
-    });
+    trackProfitability.affiliateClick(topic, link._id, link.url);
 
     try {
       await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL ? process.env.NEXT_PUBLIC_SOCKET_URL.replace('socket.io', '') : 'http://localhost:4000'}/api/affiliates/click`, {

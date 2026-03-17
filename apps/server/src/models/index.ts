@@ -111,3 +111,24 @@ const ClickLogSchema = new Schema<IClickLog>({
 
 export const ClickLog = mongoose.model<IClickLog>('ClickLog', ClickLogSchema);
 
+// ---------------------------------------------------------------------------
+// ImpressionLog — tracks every affiliate/ad impression
+// ---------------------------------------------------------------------------
+export interface IImpressionLog extends Document {
+  uuid: string;
+  type: 'affiliate' | 'adsense';
+  entityId?: string; // linkId for affiliate, slot for adsense
+  topic?: string;
+  createdAt: Date;
+}
+
+const ImpressionLogSchema = new Schema<IImpressionLog>({
+  uuid:      { type: String, required: true },
+  type:      { type: String, enum: ['affiliate', 'adsense'], required: true },
+  entityId:  { type: String },
+  topic:     { type: String },
+  createdAt: { type: Date, default: () => new Date() },
+});
+
+export const ImpressionLog = mongoose.model<IImpressionLog>('ImpressionLog', ImpressionLogSchema);
+
