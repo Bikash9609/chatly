@@ -4,15 +4,17 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { sendGTMEvent } from '@next/third-parties/google';
+import { AffiliateCard } from './affiliate-card';
 
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
   roomId: string;
   uuid: string;
+  topic?: string;
 }
 
-export function FeedbackModal({ isOpen, onClose, roomId, uuid }: FeedbackModalProps) {
+export function FeedbackModal({ isOpen, onClose, roomId, uuid, topic }: FeedbackModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
   const handleFeedback = async (rating: 'good' | 'boring' | 'creepy') => {
@@ -37,7 +39,7 @@ export function FeedbackModal({ isOpen, onClose, roomId, uuid }: FeedbackModalPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md text-center">
+      <DialogContent className="sm:max-w-lg text-center">
         <DialogHeader>
           <DialogTitle className="text-xl">How was your chat?</DialogTitle>
           <DialogDescription>
@@ -76,6 +78,16 @@ export function FeedbackModal({ isOpen, onClose, roomId, uuid }: FeedbackModalPr
             <span className="font-semibold">Creepy</span>
           </Button>
         </div>
+
+        {/* Affiliate Card Injection */}
+        {roomId && (
+          <div className="pt-6 border-t mt-6 -mx-6">
+            <div className="px-6"> 
+               <AffiliateCard topic={topic || 'any'} uuid={uuid} />
+            </div>
+          </div>
+        )}
+
       </DialogContent>
     </Dialog>
   );

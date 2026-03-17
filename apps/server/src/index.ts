@@ -43,12 +43,57 @@ app.post('/api/feedback', async (req, res) => {
 app.get('/api/affiliates/:topic', async (req, res) => {
   try {
     const { topic } = req.params;
-    const link = await AffiliateLink.findOne({ topic, active: true });
+    // Case-insensitive lookup. If 'any', we can just pick the newest overall active link.
+    const query = topic === 'any' ? { active: true } : { topic: new RegExp(`^${topic}$`, 'i'), active: true };
+    const link = await AffiliateLink.findOne(query).sort({ createdAt: -1 });
     res.json(link);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch affiliate link' });
   }
 });
+
+// Admin: Save/Update affiliate link
+app.post('/api/admin/affiliates', async (req, res) => {
+  try {
+    const { password, topic, url, title, imageUrl } = req.body;
+    
+    // Simple shared secret for MVP admin
+    if (password !== 'chatly-admin-2026') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!topic || !url || !title) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    // Update existing or create new
+    const link = await AffiliateLink.findOneAndUpdate(
+      { topic, url },
+      { topic, url, title, imageUrl, active: true },
+      { new: true, upsert: true }
+    );
+
+    res.json({ success: true, link });
+  } catch (err) {
+    console.error('[admin] Save error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Admin: Get all links (for management)
+app.get('/api/admin/affiliates', async (req, res) => {
+  try {
+    const { password } = req.query;
+    if (password !== 'chatly-admin-2026') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const links = await AffiliateLink.find().sort({ createdAt: -1 });
+    res.json(links);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch links' });
+  }
+});
+
 
 // Log click and redirect
 app.post('/api/affiliates/click', async (req, res) => {

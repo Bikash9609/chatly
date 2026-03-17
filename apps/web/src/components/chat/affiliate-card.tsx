@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, ShoppingBag } from 'lucide-react';
 import { sendGTMEvent } from '@next/third-parties/google';
+import Image from 'next/image';
 
 interface AffiliateLink {
   _id: string;
@@ -24,6 +25,7 @@ export function AffiliateCard({ topic, uuid }: AffiliateCardProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[affiliate] Fetching link for topic:', topic);
     const fetchLink = async () => {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL ? process.env.NEXT_PUBLIC_SOCKET_URL.replace('socket.io', '') : 'http://localhost:4000'}/api/affiliates/${topic}`);
@@ -72,25 +74,25 @@ export function AffiliateCard({ topic, uuid }: AffiliateCardProps) {
   if (loading || !link) return null;
 
   return (
-    <Card className="w-full max-w-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <Card className="w-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 border-none shadow-none bg-muted/20 rounded-xl">
       {link.imageUrl && (
-        <div className="h-32 bg-muted relative">
-          <img src={link.imageUrl} alt={link.title} className="w-full h-full object-cover" />
-          <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+        <div className="h-48 bg-muted relative">
+          <Image src={link.imageUrl} alt={link.title} fill className="object-cover" />
+          <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
             Sponsored
           </div>
         </div>
       )}
-      <CardHeader className="p-4 pb-2">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <ShoppingBag className="w-4 h-4 text-primary" />
-          Recommended for you
+      <CardHeader className="p-5 pb-2 text-left">
+        <CardTitle className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary/70 flex items-center gap-2">
+          <ShoppingBag className="w-3.5 h-3.5" />
+          Special Offer
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4 pt-0 space-y-3">
-        <p className="text-sm font-medium leading-tight">{link.title}</p>
-        <Button size="sm" className="w-full gap-2" onClick={handleClick}>
-          Check it out <ExternalLink className="w-3 h-3" />
+      <CardContent className="p-5 pt-0 space-y-5 text-left">
+        <p className="text-lg font-bold leading-tight tracking-tight text-foreground/90">{link.title}</p>
+        <Button size="lg" className="w-full gap-2 shadow-xl shadow-primary/20 font-bold rounded-full group" onClick={handleClick}>
+          View Details <ExternalLink className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </Button>
       </CardContent>
     </Card>

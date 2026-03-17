@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ShoppingBag, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 interface AffiliateLink {
@@ -19,7 +19,6 @@ interface AffiliateLink {
 
 export default function AdminAffiliates() {
   const [links, setLinks] = useState<AffiliateLink[]>([]);
-  const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState('');
   const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -30,13 +29,19 @@ export default function AdminAffiliates() {
     title: '',
   });
 
+  const API_URL = process.env.NEXT_PUBLIC_SOCKET_URL 
+    ? process.env.NEXT_PUBLIC_SOCKET_URL.replace('socket.io', '') 
+    : 'http://localhost:4000';
+
   const fetchLinks = async () => {
      try {
-       // Since we don't have a secure GET all links yet, we'll just show what's added or mock some
-       // In production, this would be a protected GET /api/admin/affiliates
-       setLoading(false);
-     } catch (err) {
-       setLoading(false);
+       const res = await fetch(`${API_URL}/api/admin/affiliates?password=${password}`);
+       if (res.ok) {
+         const data = await res.json();
+         setLinks(data);
+       }
+     } catch {
+       // Error handled by missing state update or generic UI
      }
   };
 
@@ -55,13 +60,21 @@ export default function AdminAffiliates() {
     }
 
     try {
-      // For MVP, we use the model's structure. In a real app, this would be a protected endpoint.
-      // Since it's mongo, we'll just demonstrate the call structure
-       toast.success('Affiliate link saved (Demo Mode)');
-       setLinks([...links, { ...newLink, _id: Date.now().toString(), clicks: 0 }]);
-       setNewLink({ topic: '', url: '', title: '' });
-    } catch (err) {
-       toast.error('Failed to save link');
+      const res = await fetch(`${API_URL}/api/admin/affiliates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...newLink, password }),
+      });
+      
+      if (res.ok) {
+        toast.success('Affiliate link saved successfully');
+        fetchLinks();
+        setNewLink({ topic: '', url: '', title: '' });
+      } else {
+        toast.error('Failed to save link');
+      }
+    } catch {
+       toast.error('Connection error');
     }
   };
 
@@ -122,9 +135,33 @@ export default function AdminAffiliates() {
               onChange={(e) => setNewLink({...newLink, url: e.target.value})}
             />
           </div>
-          <Button onClick={addLink} className="w-full">Save Link</Button>
+          <div className="flex gap-4">
+            <Button onClick={addLink} className="flex-1">Save Link</Button>
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                const samples = [
+                  { topic: 'movies', title: 'Get Prime Video - 30 Day Free Trial', url: 'https://www.amazon.in/prime' },
+                  { topic: 'tech', title: 'Top Gaming Laptops on Sale', url: 'https://www.amazon.in/gaming-laptops' },
+                  { topic: 'life', title: 'Books that will change your life', url: 'https://www.audible.in' },
+                ];
+                for (const s of samples) {
+                  await fetch(`${API_URL}/api/admin/affiliates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...s, password }),
+                  });
+                }
+                fetchLinks();
+                toast.success('Sample data seeded!');
+              }}
+            >
+              Seed Sample Data
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {links.length === 0 && (

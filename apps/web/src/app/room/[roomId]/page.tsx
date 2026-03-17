@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/components/providers/socket-provider';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,6 @@ import { SkipMeter } from '@/components/chat/skip-meter';
 import { FeedbackModal } from '@/components/chat/feedback-modal';
 import { useSession } from '@/components/providers/session-provider';
 import { RewardedAdModal } from '@/components/ads/rewarded-ad-modal';
-import { AffiliateCard } from '@/components/chat/affiliate-card';
 import { toast } from 'sonner';
 
 interface Message {
@@ -23,7 +22,8 @@ interface Message {
   sender: 'me' | 'partner' | 'system';
 }
 
-export default function ChatRoom({ params }: { params: { roomId: string } }) {
+export default function ChatRoom({ params }: { params: Promise<{ roomId: string }> }) {
+  const { roomId } = use(params);
   const router = useRouter();
   const { socket, isConnected, lastMatch, setLastMatch } = useSocket();
   
@@ -52,11 +52,47 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
     }
   }, [messages, partnerTyping]);
 
+  const handleMatched = useCallback((data: { icebreakerPrompt: string; roomId: string; topic?: string }) => {
+    console.log('[chat] Matched data:', data);
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+    
+    setIcebreaker(data.icebreakerPrompt);
+    setActiveRoomId(data.roomId);
+    setCurrentTopic(data.topic || '');
+    sendGTMEvent({ event: 'matched', topic: data.topic });
+    sendGTMEvent({ event: 'icebreaker_shown' });
+    
+    setChatLocked(true);
+    setCountdown(20);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setChatLocked(false);
+          setIcebreaker(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []); // hasInitialized.current handles the "once" logic
+
+  // 1. Initialize match from global state (handles redirect from TopicSelector)
   useEffect(() => {
-    if (!socket || !isConnected) {
-      router.push('/');
-      return;
+    if (lastMatch && lastMatch.roomId === roomId && !hasInitialized.current) {
+      // Use setTimeout to avoid synchronous setState in effect (React warning)
+      const timer = setTimeout(() => {
+        handleMatched(lastMatch!);
+        setLastMatch(null); 
+      }, 0);
+      return () => clearTimeout(timer);
     }
+  }, [lastMatch, roomId, setLastMatch, handleMatched]);
+
+  // 2. Handle socket events
+  useEffect(() => {
+    if (!socket || !isConnected) return;
 
     const handlePartnerMessage = (text: string) => {
       setMessages((prev) => [...prev, { id: Math.random().toString(), text, sender: 'partner' }]);
@@ -79,52 +115,21 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
       setShowFeedback(true);
     };
 
-    const handleMatched = (data: any) => {
-      if (hasInitialized.current) return;
-      hasInitialized.current = true;
-      
-      setIcebreaker(data.icebreakerPrompt);
-      setActiveRoomId(data.roomId);
-      setCurrentTopic(data.topic || '');
-      sendGTMEvent({ event: 'matched', topic: data.topic });
-      sendGTMEvent({ event: 'icebreaker_shown' });
-      // Start 20s countdown
-      setChatLocked(true);
-      setCountdown(20);
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setChatLocked(false);
-            setIcebreaker(null);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    };
-
-    // If we already have match data for this room, use it immediately
-    if (lastMatch && lastMatch.roomId === params.roomId && !hasInitialized.current) {
-      handleMatched(lastMatch);
-      setLastMatch(null);
-    }
-
     const handleSkipDenied = (data: { cooldownSeconds: number }) => {
       setCooldownSeconds(data.cooldownSeconds);
-      setShowRewardedAd(true); // Trigger Earn Loop
+      setShowRewardedAd(true);
       sendGTMEvent({ event: 'skip_limit_hit' });
     };
 
     const handleSkipAccepted = (data: { skipCount: number }) => {
       updateSessionInfo({ skipCount: data.skipCount });
-      router.push('/chat'); // Re-queue safely
+      router.push('/chat');
     };
 
     socket.on('partner_message', handlePartnerMessage);
     socket.on('partner_typing', handlePartnerTyping);
     socket.on('partner_left', handlePartnerLeft);
-    socket.on('matched', handleMatched);
+    socket.on('matched', handleMatched); // Also handle mid-chat rematches if they happen
     socket.on('skip_denied', handleSkipDenied);
     socket.on('skip_accepted', handleSkipAccepted);
 
@@ -136,7 +141,7 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
       socket.off('skip_denied', handleSkipDenied);
       socket.off('skip_accepted', handleSkipAccepted);
     };
-  }, [socket, isConnected, router, lastMatch, params.roomId]);
+  }, [socket, isConnected, router, roomId, handleMatched, updateSessionInfo]);
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,7 +278,7 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
                 </div>
                 <h3 className="text-lg font-bold leading-tight">Icebreaker Prompt</h3>
                 <p className="text-muted-foreground font-medium text-lg leading-relaxed">
-                  "{icebreaker}"
+                  &ldquo;{icebreaker}&rdquo;
                 </p>
                 <p className="text-xs text-muted-foreground/50 pt-2">Think of your answer. Chat unlocks soon.</p>
               </div>
@@ -282,13 +287,7 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
         )}
       </AnimatePresence>
 
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-full max-w-[calc(100%-2rem)] px-4 pointer-events-none">
-        <div className="pointer-events-auto flex flex-col items-center gap-4">
-          {showFeedback && currentTopic && uuid && (
-             <AffiliateCard topic={currentTopic} uuid={uuid} />
-          )}
-        </div>
-      </div>
+      {/* Removed Redundant AffiliateCard container - now in modal */}
 
       <FeedbackModal 
         isOpen={showFeedback} 
@@ -296,8 +295,9 @@ export default function ChatRoom({ params }: { params: { roomId: string } }) {
           setShowFeedback(false);
           router.push('/chat'); // Auto-requeue after feedback
         }}
-        roomId={activeRoomId || params.roomId}
+        roomId={activeRoomId || roomId}
         uuid={uuid || ''}
+        topic={currentTopic}
       />
 
       <RewardedAdModal 

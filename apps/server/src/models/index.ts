@@ -19,7 +19,7 @@ const SessionSchema = new Schema<ISession>({
   skipResetAt:   { type: Date, default: () => new Date() },
   shadowbanned:  { type: Boolean, default: false },
   createdAt:     { type: Date, default: () => new Date() },
-});
+}, { timestamps: true });
 
 export const Session = mongoose.model<ISession>('Session', SessionSchema);
 
@@ -86,7 +86,7 @@ const AffiliateLinkSchema = new Schema<IAffiliateLink>({
   imageUrl: { type: String },
   clicks:   { type: Number, default: 0 },
   active:   { type: Boolean, default: true },
-});
+}, { timestamps: true });
 
 export const AffiliateLink = mongoose.model<IAffiliateLink>('AffiliateLink', AffiliateLinkSchema);
 
